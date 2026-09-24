@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cinéma IA">
+<title>Cinéma IA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#08080c;--panel:#131320;--panel2:#1c1c2c;--border:#2a2a40;--ink:#f5f5f7;--dim:#8a8aa0;--ok:#2d8a4e;--err:#c0392b;--warn:#d4a017;--accent:#ff2d78;--accent2:#4a6cf7}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:calc(env(safe-area-inset-top) + 1rem) 1rem calc(env(safe-area-inset-bottom) + 2rem);font-size:15px;line-height:1.5}
+h1{font-size:1.4rem;font-weight:800;text-align:center;margin-bottom:.2rem;background:linear-gradient(90deg,#ff2d78,#4a6cf7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{font-size:.75rem;color:var(--dim);text-align:center;margin-bottom:1rem}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:.8rem}
+.panel.ok{border-color:var(--ok)}
+.key{width:100%;padding:.9rem;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--ink);font-family:ui-monospace,monospace;font-size:16px;margin-bottom:.5rem}
+.btn{width:100%;padding:1rem;border-radius:12px;border:none;background:linear-gradient(90deg,#ff2d78,#4a6cf7);color:#fff;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:.5rem}
+.btn:disabled{opacity:.3}
+.btn.sec{background:var(--panel2);color:var(--ink);border:1px solid var(--border)}
+.btn.stop{background:var(--panel2);color:var(--err);border:1px solid var(--err);display:none}
+.btn.stop.show{display:block}
+.st{font-size:.72rem;padding:.5rem .8rem;border-radius:8px;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;background:var(--panel2);color:var(--dim)}
+.st.ok{background:#1a2e1f;color:#4ade80;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:#5a5a65;flex-shrink:0}
+.st.ok .dot{background:#4ade80}
+.hint{font-size:.7rem;color:var(--dim);margin-top:.4rem}
+.hint a{color:var(--accent)}
+.up{border:2px dashed var(--border);border-radius:14px;padding:2rem 1rem;text-align:center;cursor:pointer;background:var(--panel);margin-bottom:.8rem}
+.up:active{border-color:var(--accent);background:var(--panel2)}
+.up input{display:none}
+.up .ic{font-size:2.5rem;margin-bottom:.4rem;opacity:.6}
+.up .tx{font-size:1rem;color:var(--ink)}
+.up .hb{font-size:.75rem;color:var(--dim);margin-top:.2rem}
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.5rem;margin-bottom:.8rem}
+.imgs .c{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:9/16}
+.imgs .c img{width:100%;height:100%;object-fit:cover;display:block}
+.imgs .c .x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.8);color:#fff;border:none;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer}
+.lb{display:block;font-size:.7rem;color:var(--dim);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+textarea{width:100%;padding:.9rem;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--ink);font-family:inherit;font-size:16px;min-height:80px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--accent)}
+.gr{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.4rem}
+.c2{padding:.7rem .6rem;border-radius:10px;border:1px solid var(--border);background:var(--panel2);cursor:pointer;text-align:center;font-size:.75rem;font-weight:600;line-height:1.2}
+.c2.sel{background:linear-gradient(135deg,#ff2d78,#4a6cf7);color:#fff;border-color:transparent}
+.c2 .em{font-size:1.3rem;display:block;margin-bottom:.15rem}
+.c2 .ds{font-size:.6rem;opacity:.7;margin-top:.1rem;font-weight:400}
+select{width:100%;padding:.8rem;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--ink);font-size:16px;font-family:inherit}
+.q{margin-top:.8rem}
+.qs{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:.6rem .8rem;margin-bottom:.5rem;font-size:.78rem;display:flex;justify-content:space-between}
+.qi{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;border-radius:10px;border:1px solid var(--border);margin-bottom:.3rem;background:var(--panel);font-size:.8rem}
+.qi.pending{opacity:.5}
+.qi.processing{border-color:var(--accent)}
+.qi.done{border-color:var(--ok)}
+.qi.failed{border-color:var(--err)}
+.qi .ic{font-size:1rem;width:1.5rem;text-align:center}
+.qi .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qi .st2{font-size:.7rem;color:var(--dim);text-align:right;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g{margin-top:1rem}
+.gg{display:grid;grid-template-columns:1fr;gap:.8rem}
+@media(min-width:600px){.gg{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}}
+.gi{border-radius:14px;overflow:hidden;border:1px solid var(--border);background:#000}
+.gi video{width:100%;display:block;aspect-ratio:9/16;object-fit:cover}
+.gi .cap{padding:.6rem .8rem;background:var(--panel);font-size:.75rem;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
+.gi .cap a{color:var(--accent);text-decoration:none;font-weight:700}
+.bar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(90deg,#ff2d78,#4a6cf7);color:#fff;padding:.8rem 1rem calc(env(safe-area-inset-bottom) + .8rem);font-size:.82rem;display:flex;align-items:center;gap:.6rem;transform:translateY(120%);transition:transform .3s;z-index:100}
+.bar.show{transform:translateY(0)}
+.sp{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .8s linear infinite;flex-shrink:0}
+@keyframes rot{to{transform:rotate(360deg)}}
+.tst{position:fixed;top:calc(env(safe-area-inset-top) + 1rem);left:50%;transform:translateX(-50%) translateY(-150px);background:var(--ink);color:#08080c;padding:.85rem 1.4rem;border-radius:12px;font-size:.85rem;font-weight:700;z-index:1000;opacity:0;transition:all .3s;max-width:90vw;text-align:center}
+.tst.show{transform:translateX(-50%) translateY(0);opacity:1}
+.tst.ok{background:var(--ok);color:#fff}.tst.er{background:var(--err);color:#fff}.tst.wa{background:var(--warn);color:#000}
+.row{display:flex;gap:.4rem;margin-bottom:.4rem;flex-wrap:wrap}
+.row button{padding:.5rem .8rem;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--ink);font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:600}
+.voice-btn.on{border-color:var(--ok);color:#4ade80;background:#1a2e1f}
+</style>
+</head>
+<body>
+
+<h1>🎬 Cinéma IA</h1>
+<p class="sub">Vos images en vidéos cinématographiques — style VEO3 / Seedance</p>
+
+<div class="panel" id="apip">
+<input type="password" class="key" id="key" placeholder="Collez votre clé API Agnes (sk-...)" autocomplete="off">
+<button class="btn" id="savekey">Enregistrer la clé</button>
+<div class="st" id="apist"><span class="dot"></span><span id="apistx">Aucune clé enregistrée</span></div>
+<div class="hint">Clé sur <a href="https://platform.agnes-ai.com" target="_blank">platform.agnes-ai.com</a></div>
+</div>
+
+<div class="up" id="up">
+<input type="file" id="file" accept="image/*" multiple>
+<div class="ic">＋</div>
+<div class="tx">Ajoutez vos images</div>
+<div class="hb">Chaque image deviendra une vidéo cinéma</div>
+</div>
+<div class="imgs" id="imgs"></div>
+
+<div class="panel">
+<div class="row">
+<button class="voice-btn" id="voicebtn">🔊 Voix OFF</button>
+</div>
+<span class="lb">🎨 Preset cinéma</span>
+<div class="gr" id="presets"></div>
+</div>
+
+<div class="panel">
+<span class="lb">🎥 Mouvement caméra</span>
+<div class="gr" id="cams"></div>
+</div>
+
+<div class="panel">
+<span class="lb">💡 Éclairage</span>
+<div class="gr" id="lights"></div>
+</div>
+
+<div class="panel">
+<span class="lb">🎭 Ambiance</span>
+<div class="gr" id="moods"></div>
+</div>
+
+<div class="panel">
+<span class="lb">✍️ Votre vision (optionnel)</span>
+<textarea id="prompt" placeholder="Décrivez ce que vous voulez. Exemple : « Une femme marche lentement dans la rue, la lumière dorée du soir, caméra qui recule doucement »"></textarea>
+</div>
+
+<div class="panel">
+<span class="lb">⏱ Durée</span>
+<select id="duration">
+<option value="121">5 secondes</option>
+<option value="153" selected>6,4 secondes (recommandé)</option>
+<option value="241">10 secondes</option>
+</select>
+</div>
+
+<button class="btn" id="gen" disabled>Créer les vidéos</button>
+<button class="btn stop" id="stop">⏹ Arrêter</button>
+
+<div class="q" id="q" style="display:none"></div>
+
+<div class="g" id="g" style="display:none">
+<span class="lb">Vidéos générées</span>
+<div class="gg" id="gg"></div>
+</div>
+
+<div class="bar" id="bar"><div class="sp"></div><span id="bartx">Préparation…</span></div>
+<div class="tst" id="tst"><span id="tstx"></span></div>
+
+<script>
+var API='https://apihub.agnes-ai.com/v1';
+var POLL='https://apihub.agnes-ai.com/agnesapi';
+var MODEL='agnes-video-v2.0';
+var FPS=24, POLL_INT=8, MAX_POLL=100;
+var KEY_ST='agnes_api_key', VOICE_ST='cinema_voice', CI=65000;
+
+var S={imgs:[],run:false,stop:false,q:[],done:0,fail:0,preset:'cinematic',cam:'dolly',light:'golden',mood:'emo',frames:153,voice:false,loading:false};
+
+var PRESETS=[
+{id:'cinematic',n:'Cinéma 4K',e:'🎬',d:'Rendu film pro',p:'cinematic 4K film look, professional color grading, shallow depth of field, anamorphic lens flare, film grain, dramatic lighting, high dynamic range'},
+{id:'ultra',n:'Ultra HD',e:'💎',d:'Netteté maximale',p:'ultra high definition video, razor sharp details, pristine image quality, perfect lighting, professional studio production'},
+{id:'docu',n:'Documentaire',e:'📽️',d:'Réaliste, naturel',p:'documentary style, natural lighting, realistic textures, authentic atmosphere, observed moment, handheld feel'},
+{id:'pub',n:'Publicité',e:'📢',d:'Élégant, premium',p:'high-end commercial advertisement, glossy polished look, elegant composition, luxury brand aesthetic, perfect lighting'},
+{id:'dream',n:'Rêve',e:'✨',d:'Onirique, doux',p:'dreamlike ethereal atmosphere, soft diffused light, glowing particles, surreal beauty, slow dreamy movement'},
+{id:'anime',n:'Anime',e:'🌸',d:'Style japonais',p:'anime style animation, hand-painted backgrounds, cel shading, Ghibli-inspired, vibrant colors'},
+{id:'noir',n:'Noir',e:'⚫',d:'N&B dramatique',p:'high contrast black and white, film noir aesthetic, deep shadows, dramatic side lighting, moody'},
+{id:'epic',n:'Épique',e:'⚔️',d:'Grandiose, puissant',p:'epic cinematic scale, monumental composition, dramatic sky, powerful atmosphere, breathtaking vista'},
+{id:'intim',n:'Intime',e:'🕯️',d:'Chaleureux, proche',p:'intimate warm atmosphere, soft candlelight, close framing, personal emotional moment, gentle lighting'},
+{id:'thriller',n:'Thriller',e:'🔪',d:'Tension, suspens',p:'tense thriller atmosphere, dramatic shadows, cool color palette, suspenseful mood, cinematic tension'}
+];
+
+var CAMS=[
+{id:'dolly',n:'Dolly',e:'🎬',p:'slow cinematic dolly-in, camera gliding forward smoothly'},
+{id:'orbit',n:'Orbite',e:'🔄',p:'camera orbits slowly around the subject, revealing different angles'},
+{id:'crane',n:'Grue',e:'🏗️',p:'crane shot rising vertically, revealing the scene from above'},
+{id:'steady',n:'Steadicam',e:'🎯',p:'smooth steadicam follow, fluid tracking shot'},
+{id:'drone',n:'Drone',e:'🚁',p:'aerial drone shot, sweeping movement from above'},
+{id:'macro',n:'Macro',e:'🔍',p:'extreme macro close-up, shallow depth of field, intricate details'},
+{id:'vertigo',n:'Vertigo',e:'🌀',p:'dolly zoom vertigo effect, perspective distortion'},
+{id:'snorri',n:'Snorricam',e:'📸',p:'snorricam attached to subject, world spinning around them'},
+{id:'push',n:'Push-in',e:'➡️',p:'slow push-in toward the subject, increasing intensity'},
+{id:'pull',n:'Pull-out',e:'⬅️',p:'slow pull-out revealing the environment'},
+{id:'tilt',n:'Tilt',e:'⬆️',p:'smooth tilt up revealing height'},
+{id:'pan',n:'Pan',e:'↔️',p:'slow horizontal pan across the scene'}
+];
+
+var LIGHTS=[
+{id:'golden',n:'Golden Hour',e:'🌅',p:'golden hour warm sunlight, soft amber glow, long shadows'},
+{id:'blue',n:'Blue Hour',e:'🌆',p:'blue hour twilight, cool tones, magical purple sky'},
+{id:'neon',n:'Néon',e:'🌃',p:'neon lights, magenta and cyan glow, urban night'},
+{id:'studio',n:'Studio',e:'💡',p:'professional studio lighting, controlled soft light'},
+{id:'sunset',n:'Coucher',e:'🌇',p:'dramatic sunset backlight, silhouette edges, warm orange'},
+{id:'back',n:'Contre-jour',e:'☀️',p:'strong backlight, rim light on subject, glowing edges'},
+{id:'candle',n:'Bougie',e:'🕯️',p:'warm candlelight, intimate flickering glow'},
+{id:'moon',n:'Lunaire',e:'🌙',p:'cool moonlight, blue and silver tones, peaceful night'},
+{id:'storm',n:'Orage',e:'⛈️',p:'dramatic storm lighting, dark clouds, flashes'},
+{id:'soft',n:'Doux',e:'☁️',p:'soft diffused daylight, even and natural'}
+];
+
+var MOODS=[
+{id:'emo',n:'Émotionnel',e:'💗',p:'emotional heartfelt mood, touching atmosphere'},
+{id:'epic',n:'Épique',e:'⚡',p:'epic powerful mood, grand and imposing'},
+{id:'intim',n:'Intime',e:'🤍',p:'intimate personal mood, close and tender'},
+{id:'myst',n:'Mystérieux',e:'🌫️',p:'mysterious enigmatic mood, secrets hidden'},
+{id:'joy',n:'Joyeux',e:'😊',p:'joyful vibrant mood, happy energy'},
+{id:'melan',n:'Mélancolique',e:'🌧️',p:'melancholic mood, bittersweet beauty'},
+{id:'thrill',n:'Thriller',e:'🔪',p:'tense thriller mood, suspenseful and edgy'},
+{id:'dream',n:'Rêveur',e:'💭',p:'dreamy surreal mood, floating and ethereal'}
+];
+
+function $(id){return document.getElementById(id)}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+var TST;
+function toast(msg,type){type=type||'ok';var t=$('tst');t.classList.remove('show','ok','er','wa');void t.offsetWidth;$('tstx').textContent=msg;t.classList.add(type);requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(TST);TST=setTimeout(()=>t.classList.remove('show'),2500)}
+function bar(txt){var b=$('bar');if(txt){b.classList.add('show');$('bartx').textContent=txt}else b.classList.remove('show')}
+
+function getKey(){try{return(localStorage.getItem(KEY_ST)||'').trim()}catch(e){return''}}
+function saveKey(){var k=$('key').value.trim();if(!k){try{localStorage.removeItem(KEY_ST)}catch(e){}upApi();toast('Clé supprimée','wa');return}try{localStorage.setItem(KEY_ST,k);upApi();toast('Clé enregistrée ✓','ok')}catch(e){toast('Erreur','er')}}
+function upApi(){var k=getKey(),p=$('apip'),s=$('apist'),t=$('apistx');if(k){p.classList.add('ok');s.classList.add('ok');t.textContent='Clé active · '+k.slice(0,8)+'…'+k.slice(-4);$('key').value=k}else{p.classList.remove('ok');s.classList.remove('ok');t.textContent='Aucune clé enregistrée';$('key').value=''}upGen()}
+function upGen(){var b=$('gen'),h=state.images?state.images.length:0,hasImg=h>0,hasKey=!!getKey();b.disabled=!hasImg||!hasKey||S.run;if(S.run)b.textContent='Création en cours…';else if(!hasKey)b.textContent='Ajoutez votre clé';else if(!hasImg)b.textContent='Ajoutez des images';else b.textContent='Créer '+h+' vidéo'+(h>1?'s':'')}
+
+function fileToData(f){return new Promise((res,rej)=>{var r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f)})}
+function makeThumb(uri){return new Promise(res=>{var i=new Image();i.onload=()=>{try{var c=document.createElement('canvas'),ratio=i.height/i.width;c.width=200;c.height=Math.round(200*ratio);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.7))}catch(e){res(uri)}};i.onerror=()=>res(uri);i.src=uri})}
+async function processFile(f){if(!f.type.startsWith('image/')||f.size>12*1024*1024)return null;try{var d=await fileToData(f),t=await makeThumb(d);return{uri:d,thumb:t,id:Date.now()+Math.random()}}catch(e){return null}}
+async function handleFiles(files){var arr=Array.from(files).filter(f=>f.type.startsWith('image/'));if(!arr.length)return;S.loading=true;upGen();bar('Chargement…');for(var i=0;i<arr.length;i+=5){var b=arr.slice(i,i+5),r=await Promise.all(b.map(processFile));r.forEach(x=>{if(x)S.imgs.push(x)});renderImgs();bar('Chargement '+Math.min(i+5,arr.length)+'/'+arr.length)}S.loading=false;bar(null);upGen();toast(arr.length+' image'+(arr.length>1?'s':'')+' chargée'+(arr.length>1?'s':''),'ok')}
+function renderImgs(){var g=$('imgs');g.innerHTML=S.imgs.map(i=>'<div class="c"><img src="'+i.thumb+'"><button class="x" data-id="'+i.id+'">✕</button></div>').join('');g.querySelectorAll('[data-id]').forEach(b=>{b.onclick=e=>{e.stopPropagation();S.imgs=S.imgs.filter(x=>x.id!=b.dataset.id);renderImgs();upGen()}})}
+
+function renderGrid(cid,data,key){var c=$(cid);c.innerHTML=data.map(d=>'<div class="c2 '+(S[key]===d.id?'sel':'')+'" data-id="'+d.id+'"><span class="em">'+d.e+'</span>'+esc(d.n)+'<div class="ds">'+esc(d.d)+'</div></div>').join('');c.querySelectorAll('.c2').forEach(el=>{el.onclick=()=>{S[key]=el.dataset.id;renderGrid(cid,data,key)}})}
+
+function buildPrompt(){
+  var pr=PRESETS.find(x=>x.id===S.preset);
+  var cm=CAMS.find(x=>x.id===S.cam);
+  var li=LIGHTS.find(x=>x.id===S.light);
+  var mo=MOODS.find(x=>x.id===S.mood);
+  var p=['Animate this exact image as the starting frame. The subject must remain IDENTICAL: same face, same expression, same clothing, same pose, same identity. This is a CONTINUATION of the source image, preserving exact composition and framing.'];
+  if(pr)p.push(pr.p);
+  if(cm)p.push(cm.p);
+  if(li)p.push(li.p);
+  if(mo)p.push(mo.p);
+  var userPrompt=$('prompt').value.trim();
+  if(userPrompt)p.push('Artistic direction (highest priority): '+userPrompt);
+  p.push('Sound design: minimal ambient, no music, no dialogue');
+  p.push('Portrait 9:16 vertical, 24fps, no text, no subtitles, no watermark, consistent character design, cinema quality');
+  return p.join('. ');
+}
+
+async function api(url,opts){var att=0;while(true){if(S.stop)throw new Error('Arrêt');try{var r=await fetch(url,opts);if(r.status===429){var w=[15,30,45,60,90,120,180][Math.min(att,6)];bar('L\'IA se prépare… ('+w+'s)');await sleep(w*1000);att++;continue}if(r.status===503){var w2=[5,10,15,20,30,45][Math.min(att,5)];bar('Votre vidéo se prépare… ('+w2+'s)');await sleep(w2*1000);att++;continue}return r}catch(e){if(e.message==='Arrêt')throw e;if(att>=6)throw e;var w3=[3,5,8,12,20,30][Math.min(att,5)];bar('Connexion… ('+w3+'s)');await sleep(w3*1000);att++}}}
+
+async function createTask(uri,prompt){
+  var r=await api(API+'/videos',{method:'POST',headers:{'Authorization':'Bearer '+getKey(),'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,prompt:prompt,image:uri,num_frames:S.frames,frame_rate:FPS})});
+  if(!r.ok){var t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,200))}
+  var d=await r.json();var id=d.video_id||d.id||d.task_id;if(!id)throw new Error('Pas de video_id');return id;
+}
+
+async function pollTask(id,onP){
+  for(var att=0;att<MAX_POLL;att++){if(S.stop)throw new Error('Arrêt');if(att>0){for(var r=POLL_INT;r>0;r--){if(S.stop)throw new Error('Arrêt');onP('L\'image prend vie… '+r+'s');await sleep(1000)}}
+  var url=POLL+'?video_id='+encodeURIComponent(id)+'&model_name='+encodeURIComponent(MODEL);
+  var res=await api(url,{method:'GET',headers:{'Authorization':'Bearer '+getKey()}});
+  var d=await res.json();var st=d.status||'?',pr=d.progress||0;onP('Création… '+pr+'%');
+  if(st==='completed'||st==='succeeded'||st==='done'){var u=(d.metadata&&d.metadata.url)||d.url||(d.output&&d.output.url);if(!u)throw new Error('Pas d\'URL');return u}
+  if(st==='failed'||st==='error'||st==='cancelled')throw new Error('Échec ('+st+')')}
+  throw new Error('Délai max')
+}
+
+function renderQ(){var q=$('q');if(!S.q.length){q.style.display='none';return}q.style.display='block';var t=S.q.length,d=S.done+S.fail;var h='<div class="qs"><span><strong>Progression : '+d+'/'+t+'</strong></span><span>'+(d<t?'En cours':'Terminé')+'</span></div>';S.q.slice(0,30).forEach(it=>{var ic='○',cl='pending',st='En attente';if(it.st==='creating'){ic='◐';cl='processing';st='Préparation…'}else if(it.st==='processing'){ic='◐';cl='processing';st=it.p||'En cours…'}else if(it.st==='done'){ic='●';cl='done';st='Terminé'}else if(it.st==='failed'){ic='✕';cl='failed';st='Échec'}h+='<div class="qi '+cl+'"><div class="ic">'+ic+'</div><div class="nm">Image '+(it.i+1)+'</div><div class="st2">'+esc(st)+'</div></div>'});q.innerHTML=h}
+
+function addG(url,label){var g=$('g'),gg=$('gg');g.style.display='block';var el=document.createElement('div');el.className='gi';el.innerHTML='<video controls preload="metadata" playsinline><source src="'+url+'" type="video/mp4"></video><div class="cap"><span>'+esc(label)+'</span><a href="'+url+'" download target="_blank">⬇ Sauver</a></div>';gg.appendChild(el)}
+
+async function processOne(it){
+  it.st='creating';it.p='Préparation…';renderQ();
+  var prompt=buildPrompt();
+  var id=await createTask(it.img.uri,prompt);
+  it.vid=id;it.st='processing';it.p='En cours…';renderQ();
+  var url=await pollTask(id,p=>{it.p=p;renderQ()});
+  it.st='done';it.p='Terminé';S.done++;renderQ();upGen();addG(url,'Image '+(it.i+1));
+  if(S.voice)speak('Vidéo '+(it.i+1)+' créée');
+}
+
+async function start(){
+  if(S.run||!S.imgs.length)return;
+  if(!getKey()){toast('Ajoutez votre clé API','er');$('key').focus();return}
+  S.run=true;S.stop=false;S.done=0;S.fail=0;S.frames=parseInt($('duration').value,10);
+  S.q=S.imgs.map((im,i)=>({i:i,img:im,st:'pending',p:null,vid:null}));
+  $('gg').innerHTML='';$('g').style.display='none';
+  $('stop').classList.add('show');$('gen').disabled=true;
+  renderQ();upGen();
+  for(var i=0;i<S.q.length;i++){if(S.stop)break;try{await processOne(S.q[i])}catch(e){if(e.message==='Arrêt')break;S.q[i].st='failed';S.q[i].p='Échec';S.fail++;renderQ();upGen()}
+    if(i<S.q.length-1&&!S.stop){var w=Math.ceil(CI/1000);for(var r=w;r>0;r--){if(S.stop)break;bar('Respiration… Image '+(i+2)+'/'+S.q.length+' dans '+r+'s');await sleep(1000)}}}
+  S.run=false;S.stop=false;$('stop').classList.remove('show');upGen();
+  bar('✦ '+S.done+'/'+S.q.length+' vidéos créées ✦');setTimeout(()=>bar(null),4000);
+  toast(S.done+' vidéo'+(S.done>1?'s':'')+' créée'+(S.done>1?'s':''),S.done>0?'ok':'wa');
+}
+
+function stopGen(){if(!S.run)return;S.stop=true;bar('Arrêt en cours…')}
+
+var AVAIL=[];
+function initVoice(){
+  if(!('speechSynthesis' in window)){$('voicebtn').style.display='none';return}
+  function load(){AVAIL=speechSynthesis.getVoices()}
+  load();if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=load;
+  try{S.voice=localStorage.getItem(VOICE_ST)==='1'}catch(e){}
+  upVoice();
+  $('voicebtn').onclick=()=>{S.voice=!S.voice;try{localStorage.setItem(VOICE_ST,S.voice?'1':'0')}catch(e){}upVoice();if(S.voice){toast('Voix activée','ok');speak('Voix activée')}else{speechSynthesis.cancel();toast('Voix désactivée','wa')}}
+}
+function upVoice(){var b=$('voicebtn');if(S.voice){b.classList.add('on');b.textContent='🔊 Voix ON'}else{b.classList.remove('on');b.textContent='🔊 Voix OFF'}}
+function speak(t){if(!('speechSynthesis' in window))return;if(!S.voice)return;speechSynthesis.cancel();var c=String(t).replace(/```[\s\S]*?```/g,' ').replace(/[*_`#>]/g,'').slice(0,400);if(!c)return;var u=new SpeechSynthesisUtterance(c);u.lang='fr-FR';u.rate=1;u.pitch=1;var fr=AVAIL.filter(v=>v.lang&&v.lang.toLowerCase().indexOf('fr')===0);if(fr.length)u.voice=fr[0];speechSynthesis.speak(u)}
+
+function init(){
+  $('savekey').onclick=saveKey;
+  $('key').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveKey()}});
+  $('up').onclick=()=>$('file').click();
+  $('file').onchange=e=>{handleFiles(e.target.files);e.target.value=''};
+  $('gen').onclick=start;
+  $('stop').onclick=stopGen;
+  renderGrid('presets',PRESETS,'preset');
+  renderGrid('cams',CAMS,'cam');
+  renderGrid('lights',LIGHTS,'light');
+  renderGrid('moods',MOODS,'mood');
+  upApi();upGen();renderImgs();renderQ();
+  initVoice();
+}
+init();
+</script>
+</body>
+</html>
