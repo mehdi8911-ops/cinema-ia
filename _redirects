@@ -1,0 +1,2 @@
+/api/agnes/*  https://apihub.agnes-ai.com/:splat  200
+/api/poll/*   https://apihub.agnes-ai.com/agnesapi/:splat  200
