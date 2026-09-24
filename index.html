@@ -27,16 +27,16 @@ h1{font-size:1.4rem;font-weight:800;text-align:center;margin-bottom:.2rem;backgr
 .st.ok .dot{background:#4ade80}
 .hint{font-size:.7rem;color:var(--dim);margin-top:.4rem}
 .hint a{color:var(--accent)}
-.up{border:2px dashed var(--border);border-radius:14px;padding:2rem 1rem;text-align:center;cursor:pointer;background:var(--panel);margin-bottom:.8rem}
+.up{position:relative;display:block;border:2px dashed var(--border);border-radius:14px;padding:2rem 1rem;text-align:center;background:var(--panel);margin-bottom:.8rem;cursor:pointer;overflow:hidden}
 .up:active{border-color:var(--accent);background:var(--panel2)}
-.up input{display:none}
+.up input{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}
 .up .ic{font-size:2.5rem;margin-bottom:.4rem;opacity:.6}
 .up .tx{font-size:1rem;color:var(--ink)}
 .up .hb{font-size:.75rem;color:var(--dim);margin-top:.2rem}
 .imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:.5rem;margin-bottom:.8rem}
 .imgs .c{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000;aspect-ratio:9/16}
 .imgs .c img{width:100%;height:100%;object-fit:cover;display:block}
-.imgs .c .x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.8);color:#fff;border:none;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer}
+.imgs .c .x{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.8);color:#fff;border:none;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;z-index:3}
 .lb{display:block;font-size:.7rem;color:var(--dim);margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
 textarea{width:100%;padding:.9rem;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--ink);font-family:inherit;font-size:16px;min-height:80px;resize:vertical}
 textarea:focus{outline:none;border-color:var(--accent)}
@@ -87,12 +87,12 @@ select{width:100%;padding:.8rem;border-radius:10px;border:1px solid var(--border
 <div class="hint">Clé sur <a href="https://platform.agnes-ai.com" target="_blank">platform.agnes-ai.com</a></div>
 </div>
 
-<div class="up" id="up">
+<label class="up" id="up" for="file">
 <input type="file" id="file" accept="image/*" multiple>
 <div class="ic">＋</div>
 <div class="tx">Ajoutez vos images</div>
 <div class="hb">Chaque image deviendra une vidéo cinéma</div>
-</div>
+</label>
 <div class="imgs" id="imgs"></div>
 
 <div class="panel">
@@ -120,7 +120,7 @@ select{width:100%;padding:.8rem;border-radius:10px;border:1px solid var(--border
 
 <div class="panel">
 <span class="lb">✍️ Votre vision (optionnel)</span>
-<textarea id="prompt" placeholder="Décrivez ce que vous voulez. Exemple : « Une femme marche lentement dans la rue, la lumière dorée du soir, caméra qui recule doucement »"></textarea>
+<textarea id="prompt" placeholder="Décrivez ce que vous voulez. Exemple : « Une femme marche lentement dans la rue, lumière dorée du soir, caméra qui recule doucement »"></textarea>
 </div>
 
 <div class="panel">
@@ -146,8 +146,8 @@ select{width:100%;padding:.8rem;border-radius:10px;border:1px solid var(--border
 <div class="tst" id="tst"><span id="tstx"></span></div>
 
 <script>
-var API='https://apihub.agnes-ai.com/v1';
-var POLL='https://apihub.agnes-ai.com/agnesapi';
+var API='/api/agnes/v1';
+var POLL='/api/poll';
 var MODEL='agnes-video-v2.0';
 var FPS=24, POLL_INT=8, MAX_POLL=100;
 var KEY_ST='agnes_api_key', VOICE_ST='cinema_voice', CI=65000;
@@ -208,7 +208,6 @@ var MOODS=[
 
 function $(id){return document.getElementById(id)}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-function rnd(a){return a[Math.floor(Math.random()*a.length)]}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 var TST;
@@ -218,15 +217,15 @@ function bar(txt){var b=$('bar');if(txt){b.classList.add('show');$('bartx').text
 function getKey(){try{return(localStorage.getItem(KEY_ST)||'').trim()}catch(e){return''}}
 function saveKey(){var k=$('key').value.trim();if(!k){try{localStorage.removeItem(KEY_ST)}catch(e){}upApi();toast('Clé supprimée','wa');return}try{localStorage.setItem(KEY_ST,k);upApi();toast('Clé enregistrée ✓','ok')}catch(e){toast('Erreur','er')}}
 function upApi(){var k=getKey(),p=$('apip'),s=$('apist'),t=$('apistx');if(k){p.classList.add('ok');s.classList.add('ok');t.textContent='Clé active · '+k.slice(0,8)+'…'+k.slice(-4);$('key').value=k}else{p.classList.remove('ok');s.classList.remove('ok');t.textContent='Aucune clé enregistrée';$('key').value=''}upGen()}
-function upGen(){var b=$('gen'),h=state.images?state.images.length:0,hasImg=h>0,hasKey=!!getKey();b.disabled=!hasImg||!hasKey||S.run;if(S.run)b.textContent='Création en cours…';else if(!hasKey)b.textContent='Ajoutez votre clé';else if(!hasImg)b.textContent='Ajoutez des images';else b.textContent='Créer '+h+' vidéo'+(h>1?'s':'')}
+function upGen(){var b=$('gen'),h=S.imgs.length,hasImg=h>0,hasKey=!!getKey();b.disabled=!hasImg||!hasKey||S.run;if(S.run)b.textContent='Création en cours…';else if(!hasKey)b.textContent='Ajoutez votre clé';else if(!hasImg)b.textContent='Ajoutez des images';else b.textContent='Créer '+h+' vidéo'+(h>1?'s':'')}
 
 function fileToData(f){return new Promise((res,rej)=>{var r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(f)})}
 function makeThumb(uri){return new Promise(res=>{var i=new Image();i.onload=()=>{try{var c=document.createElement('canvas'),ratio=i.height/i.width;c.width=200;c.height=Math.round(200*ratio);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.7))}catch(e){res(uri)}};i.onerror=()=>res(uri);i.src=uri})}
 async function processFile(f){if(!f.type.startsWith('image/')||f.size>12*1024*1024)return null;try{var d=await fileToData(f),t=await makeThumb(d);return{uri:d,thumb:t,id:Date.now()+Math.random()}}catch(e){return null}}
 async function handleFiles(files){var arr=Array.from(files).filter(f=>f.type.startsWith('image/'));if(!arr.length)return;S.loading=true;upGen();bar('Chargement…');for(var i=0;i<arr.length;i+=5){var b=arr.slice(i,i+5),r=await Promise.all(b.map(processFile));r.forEach(x=>{if(x)S.imgs.push(x)});renderImgs();bar('Chargement '+Math.min(i+5,arr.length)+'/'+arr.length)}S.loading=false;bar(null);upGen();toast(arr.length+' image'+(arr.length>1?'s':'')+' chargée'+(arr.length>1?'s':''),'ok')}
-function renderImgs(){var g=$('imgs');g.innerHTML=S.imgs.map(i=>'<div class="c"><img src="'+i.thumb+'"><button class="x" data-id="'+i.id+'">✕</button></div>').join('');g.querySelectorAll('[data-id]').forEach(b=>{b.onclick=e=>{e.stopPropagation();S.imgs=S.imgs.filter(x=>x.id!=b.dataset.id);renderImgs();upGen()}})}
+function renderImgs(){var g=$('imgs');g.innerHTML=S.imgs.map(i=>'<div class="c"><img src="'+i.thumb+'"><button class="x" data-id="'+i.id+'">✕</button></div>').join('');g.querySelectorAll('[data-id]').forEach(b=>{b.onclick=e=>{e.stopPropagation();e.preventDefault();S.imgs=S.imgs.filter(x=>x.id!=b.dataset.id);renderImgs();upGen()}})}
 
-function renderGrid(cid,data,key){var c=$(cid);c.innerHTML=data.map(d=>'<div class="c2 '+(S[key]===d.id?'sel':'')+'" data-id="'+d.id+'"><span class="em">'+d.e+'</span>'+esc(d.n)+'<div class="ds">'+esc(d.d)+'</div></div>').join('');c.querySelectorAll('.c2').forEach(el=>{el.onclick=()=>{S[key]=el.dataset.id;renderGrid(cid,data,key)}})}
+function renderGrid(cid,data,key){var c=$(cid);c.innerHTML=data.map(d=>'<div class="c2 '+(S[key]===d.id?'sel':'')+'" data-id="'+d.id+'"><span class="em">'+d.e+'</span>'+esc(d.n)+'<div class="ds">'+esc(d.d||'')+'</div></div>').join('');c.querySelectorAll('.c2').forEach(el=>{el.onclick=()=>{S[key]=el.dataset.id;renderGrid(cid,data,key)}})}
 
 function buildPrompt(){
   var pr=PRESETS.find(x=>x.id===S.preset);
@@ -309,8 +308,7 @@ function speak(t){if(!('speechSynthesis' in window))return;if(!S.voice)return;sp
 function init(){
   $('savekey').onclick=saveKey;
   $('key').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveKey()}});
-  $('up').onclick=()=>$('file').click();
-  $('file').onchange=e=>{handleFiles(e.target.files);e.target.value=''};
+  $('file').addEventListener('change',e=>{handleFiles(e.target.files);e.target.value=''});
   $('gen').onclick=start;
   $('stop').onclick=stopGen;
   renderGrid('presets',PRESETS,'preset');
