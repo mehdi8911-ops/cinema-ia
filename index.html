@@ -211,7 +211,7 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 var TST;
-function toast(msg,type){type=type||'ok';var t=$('tst');t.classList.remove('show','ok','er','wa');void t.offsetWidth;$('tstx').textContent=msg;t.classList.add(type);requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(TST);TST=setTimeout(()=>t.classList.remove('show'),2500)}
+function toast(msg,type){type=type||'ok';var t=$('tst');t.classList.remove('show','ok','er','wa');void t.offsetWidth;$('tstx').textContent=msg;t.classList.add(type);requestAnimationFrame(()=>t.classList.add('show'));clearTimeout(TST);TST=setTimeout(()=>t.classList.remove('show'),3500)}
 function bar(txt){var b=$('bar');if(txt){b.classList.add('show');$('bartx').textContent=txt}else b.classList.remove('show')}
 
 function getKey(){try{return(localStorage.getItem(KEY_ST)||'').trim()}catch(e){return''}}
@@ -248,21 +248,45 @@ async function api(url,opts){var att=0;while(true){if(S.stop)throw new Error('Ar
 
 async function createTask(uri,prompt){
   var r=await api(API+'/videos',{method:'POST',headers:{'Authorization':'Bearer '+getKey(),'Content-Type':'application/json'},body:JSON.stringify({model:MODEL,prompt:prompt,image:uri,num_frames:S.frames,frame_rate:FPS})});
-  if(!r.ok){var t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,200))}
-  var d=await r.json();var id=d.video_id||d.id||d.task_id;if(!id)throw new Error('Pas de video_id');return id;
+  if(!r.ok){var t=await r.text();throw new Error('HTTP '+r.status+' — '+t.slice(0,300))}
+  var raw=await r.text();
+  var d;
+  try{d=JSON.parse(raw)}catch(e){throw new Error('Réponse invalide : '+raw.slice(0,300))}
+  if(d.error){throw new Error('Agnes : '+(d.error.message||JSON.stringify(d.error)).slice(0,300))}
+  var id=d.video_id||d.id||d.task_id;
+  if(!id)throw new Error('Pas de video_id. Réponse : '+raw.slice(0,300));
+  return id;
 }
 
 async function pollTask(id,onP){
-  for(var att=0;att<MAX_POLL;att++){if(S.stop)throw new Error('Arrêt');if(att>0){for(var r=POLL_INT;r>0;r--){if(S.stop)throw new Error('Arrêt');onP('L\'image prend vie… '+r+'s');await sleep(1000)}}
-  var url=POLL+'?video_id='+encodeURIComponent(id)+'&model_name='+encodeURIComponent(MODEL);
-  var res=await api(url,{method:'GET',headers:{'Authorization':'Bearer '+getKey()}});
-  var d=await res.json();var st=d.status||'?',pr=d.progress||0;onP('Création… '+pr+'%');
-  if(st==='completed'||st==='succeeded'||st==='done'){var u=(d.metadata&&d.metadata.url)||d.url||(d.output&&d.output.url);if(!u)throw new Error('Pas d\'URL');return u}
-  if(st==='failed'||st==='error'||st==='cancelled')throw new Error('Échec ('+st+')')}
-  throw new Error('Délai max')
+  for(var att=0;att<MAX_POLL;att++){
+    if(S.stop)throw new Error('Arrêt');
+    if(att>0){
+      for(var r=POLL_INT;r>0;r--){
+        if(S.stop)throw new Error('Arrêt');
+        onP('L\'image prend vie… '+r+'s');
+        await sleep(1000);
+      }
+    }
+    var url=POLL+'?video_id='+encodeURIComponent(id)+'&model_name='+encodeURIComponent(MODEL);
+    var res=await api(url,{method:'GET',headers:{'Authorization':'Bearer '+getKey()}});
+    var raw=await res.text();
+    var d;
+    try{d=JSON.parse(raw)}catch(e){throw new Error('Polling invalide : '+raw.slice(0,300))}
+    if(d.error){throw new Error('Agnes dit : '+(d.error.message||JSON.stringify(d.error)).slice(0,300))}
+    var st=d.status||'?',pr=d.progress||0;
+    onP('Création… '+st+' '+pr+'%');
+    if(st==='completed'||st==='succeeded'||st==='done'){
+      var u=(d.metadata&&d.metadata.url)||d.url||(d.output&&d.output.url);
+      if(!u)throw new Error('Terminé mais pas d\'URL : '+raw.slice(0,300));
+      return u;
+    }
+    if(st==='failed'||st==='error'||st==='cancelled')throw new Error('Échec Agnes : '+raw.slice(0,300));
+  }
+  throw new Error('Délai max dépassé');
 }
 
-function renderQ(){var q=$('q');if(!S.q.length){q.style.display='none';return}q.style.display='block';var t=S.q.length,d=S.done+S.fail;var h='<div class="qs"><span><strong>Progression : '+d+'/'+t+'</strong></span><span>'+(d<t?'En cours':'Terminé')+'</span></div>';S.q.slice(0,30).forEach(it=>{var ic='○',cl='pending',st='En attente';if(it.st==='creating'){ic='◐';cl='processing';st='Préparation…'}else if(it.st==='processing'){ic='◐';cl='processing';st=it.p||'En cours…'}else if(it.st==='done'){ic='●';cl='done';st='Terminé'}else if(it.st==='failed'){ic='✕';cl='failed';st='Échec'}h+='<div class="qi '+cl+'"><div class="ic">'+ic+'</div><div class="nm">Image '+(it.i+1)+'</div><div class="st2">'+esc(st)+'</div></div>'});q.innerHTML=h}
+function renderQ(){var q=$('q');if(!S.q.length){q.style.display='none';return}q.style.display='block';var t=S.q.length,d=S.done+S.fail;var h='<div class="qs"><span><strong>Progression : '+d+'/'+t+'</strong></span><span>'+(d<t?'En cours':'Terminé')+'</span></div>';S.q.slice(0,30).forEach(it=>{var ic='○',cl='pending',st='En attente';if(it.st==='creating'){ic='◐';cl='processing';st='Préparation…'}else if(it.st==='processing'){ic='◐';cl='processing';st=it.p||'En cours…'}else if(it.st==='done'){ic='●';cl='done';st='Terminé'}else if(it.st==='failed'){ic='✕';cl='failed';st=it.p||'Échec'}h+='<div class="qi '+cl+'"><div class="ic">'+ic+'</div><div class="nm">Image '+(it.i+1)+'</div><div class="st2">'+esc(st)+'</div></div>'});q.innerHTML=h}
 
 function addG(url,label){var g=$('g'),gg=$('gg');g.style.display='block';var el=document.createElement('div');el.className='gi';el.innerHTML='<video controls preload="metadata" playsinline><source src="'+url+'" type="video/mp4"></video><div class="cap"><span>'+esc(label)+'</span><a href="'+url+'" download target="_blank">⬇ Sauver</a></div>';gg.appendChild(el)}
 
@@ -284,7 +308,7 @@ async function start(){
   $('gg').innerHTML='';$('g').style.display='none';
   $('stop').classList.add('show');$('gen').disabled=true;
   renderQ();upGen();
-  for(var i=0;i<S.q.length;i++){if(S.stop)break;try{await processOne(S.q[i])}catch(e){if(e.message==='Arrêt')break;S.q[i].st='failed';S.q[i].p='Échec';S.fail++;renderQ();upGen()}
+  for(var i=0;i<S.q.length;i++){if(S.stop)break;try{await processOne(S.q[i])}catch(e){if(e.message==='Arrêt')break;S.q[i].st='failed';S.q[i].p=e.message.slice(0,80);S.fail++;renderQ();upGen();toast(e.message.slice(0,80),'er')}
     if(i<S.q.length-1&&!S.stop){var w=Math.ceil(CI/1000);for(var r=w;r>0;r--){if(S.stop)break;bar('Respiration… Image '+(i+2)+'/'+S.q.length+' dans '+r+'s');await sleep(1000)}}}
   S.run=false;S.stop=false;$('stop').classList.remove('show');upGen();
   bar('✦ '+S.done+'/'+S.q.length+' vidéos créées ✦');setTimeout(()=>bar(null),4000);
